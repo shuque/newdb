@@ -201,7 +201,7 @@ def generate_project(name: str, output_dir: Path):
         formatter = generic
 
         [formatter_generic]
-        format = %(%(levelname)-5.5s [%(name)s] %(message)s
+        format = %(levelname)-5.5s [%(name)s] %(message)s
         datefmt = %H:%M:%S
     """))
 
