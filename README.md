@@ -69,6 +69,8 @@ pip install -e '.[dev]'
 Create `src/<project>/models/example.py`:
 
 ```python
+from typing import Optional
+
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -80,7 +82,7 @@ class Example(TimestampMixin, Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(200), unique=True, nullable=False, index=True)
-    description: Mapped[str | None] = mapped_column(String(500))
+    description: Mapped[Optional[str]] = mapped_column(String(500))
 ```
 
 Then update `src/<project>/models/__init__.py`:

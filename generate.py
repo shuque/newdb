@@ -53,7 +53,7 @@ def generate_project(name: str, output_dir: Path):
         name = "{name}"
         version = "0.1.0"
         description = ""
-        requires-python = ">=3.11"
+        requires-python = ">=3.9"
         dependencies = [
             "sqlalchemy>=2.0",
             "alembic>=1.13",
@@ -75,7 +75,7 @@ def generate_project(name: str, output_dir: Path):
         where = ["src"]
 
         [tool.ruff]
-        target-version = "py311"
+        target-version = "py39"
         line-length = 100
     """))
 
@@ -98,13 +98,15 @@ def generate_project(name: str, output_dir: Path):
 
     # --- src/<pkg>/database.py ---
     write(project_dir / "src" / pkg_name / "database.py", dedent(f"""\
+        from typing import Optional
+
         from sqlalchemy import create_engine, event
         from sqlalchemy.orm import Session, sessionmaker
 
         from .config import DATABASE_URL, _DEFAULT_DB_DIR
 
 
-        def _create_engine(url: str | None = None):
+        def _create_engine(url: Optional[str] = None):
             db_url = url or DATABASE_URL
             if db_url.startswith("sqlite") and ":memory:" not in db_url:
                 _DEFAULT_DB_DIR.mkdir(parents=True, exist_ok=True)
