@@ -57,6 +57,7 @@ def generate_project(name: str, output_dir: Path):
         dependencies = [
             "sqlalchemy>=2.0",
             "alembic>=1.13",
+            "click>=8.0",
         ]
 
         [project.optional-dependencies]
@@ -66,6 +67,9 @@ def generate_project(name: str, output_dir: Path):
             "pytest-cov",
             "ruff",
         ]
+
+        [project.scripts]
+        {name} = "{pkg_name}.cli:cli"
 
         [build-system]
         requires = ["setuptools>=68.0"]
@@ -162,6 +166,114 @@ def generate_project(name: str, output_dir: Path):
             updated_at: Mapped[datetime] = mapped_column(
                 server_default=func.now(), onupdate=func.now(), nullable=False
             )
+    """))
+
+    # --- src/<pkg>/cli.py ---
+    write(project_dir / "src" / pkg_name / "cli.py", dedent(f"""\
+        import click
+        from sqlalchemy import select
+
+        from .database import engine, get_session
+        from .models import Base
+
+
+        @click.group()
+        def cli():
+            \"\"\"{name} database CLI.\"\"\"
+
+
+        # --- init ---
+
+
+        @cli.command()
+        def init_db():
+            \"\"\"Initialize the database (create all tables).\"\"\"
+            Base.metadata.create_all(engine)
+            click.echo("Database initialized.")
+
+
+        # --- add ---
+
+
+        @cli.group()
+        def add():
+            \"\"\"Add a resource.\"\"\"
+
+
+        # Example:
+        # @add.command()
+        # @click.argument("name")
+        # @click.option("--description", "-d", help="Description")
+        # def example(name, description):
+        #     \"\"\"Add an example resource.\"\"\"
+        #     from .models import Example
+        #     with get_session() as session:
+        #         obj = Example(name=name, description=description)
+        #         session.add(obj)
+        #         session.commit()
+        #         click.echo(f"Added example: {{name}}")
+
+
+        # --- list ---
+
+
+        @cli.group("list")
+        def list_cmd():
+            \"\"\"List resources.\"\"\"
+
+
+        # Example:
+        # @list_cmd.command()
+        # @click.option("--json", "as_json", is_flag=True, help="JSON output")
+        # def examples(as_json):
+        #     \"\"\"List example resources.\"\"\"
+        #     import json as json_mod
+        #     from .models import Example
+        #     with get_session() as session:
+        #         results = session.execute(select(Example)).scalars().all()
+        #         if as_json:
+        #             records = [{{"name": r.name, "description": r.description}} for r in results]
+        #             click.echo(json_mod.dumps(records, indent=2))
+        #         else:
+        #             for r in results:
+        #                 click.echo(f"{{r.name}}")
+
+
+        # --- update ---
+
+
+        @cli.group()
+        def update():
+            \"\"\"Update a resource.\"\"\"
+
+
+        # --- delete ---
+
+
+        @cli.group()
+        def delete():
+            \"\"\"Delete a resource.\"\"\"
+
+
+        # --- sql ---
+
+
+        @cli.command()
+        @click.argument("query")
+        def sql(query):
+            \"\"\"Run a raw SQL query.\"\"\"
+            from sqlalchemy import text
+            with get_session() as session:
+                result = session.execute(text(query))
+                if result.returns_rows:
+                    rows = result.fetchall()
+                    if rows:
+                        click.echo("\\t".join(result.keys()))
+                        for row in rows:
+                            click.echo("\\t".join(str(v) for v in row))
+                else:
+                    click.echo(f"OK ({{result.rowcount}} rows affected)")
+                session.commit()
     """))
 
     # --- alembic.ini ---
@@ -341,8 +453,10 @@ def generate_project(name: str, output_dir: Path):
     print("Next steps:")
     print(f"  cd {project_dir}")
     print(f"  pip install -e '.[dev]'")
+    print(f"  {name} init-db")
     print(f"  # Add models to src/{pkg_name}/models/")
     print(f"  # Update src/{pkg_name}/models/__init__.py with imports")
+    print(f"  # Add CLI commands to src/{pkg_name}/cli.py")
     print(f"  alembic revision --autogenerate -m 'initial'")
     print(f"  alembic upgrade head")
     print()

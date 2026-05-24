@@ -33,6 +33,7 @@ This creates an `inventory/` directory with a complete project skeleton.
 │       ├── __init__.py
 │       ├── config.py
 │       ├── database.py
+│       ├── cli.py
 │       └── models/
 │           ├── __init__.py
 │           └── base.py
@@ -53,6 +54,8 @@ This creates an `inventory/` directory with a complete project skeleton.
 - **Environment variable for DB URL** — `<PROJECT>_DATABASE_URL` overrides the
   default SQLite path (`~/.local/share/<project>/<project>.sqlite3`)
 - **PostgreSQL optional dependency** — `pip install -e '.[postgres]'`
+- **Click CLI** — skeletal command-line interface with `init-db`, `add`, `list`,
+  `update`, `delete`, and `sql` subcommands ready to extend
 - **Test scaffolding** — pytest with in-memory SQLite fixture
 
 ## Getting Started
@@ -92,6 +95,36 @@ from .base import Base, TimestampMixin
 from .example import Example
 
 __all__ = ["Base", "TimestampMixin", "Example"]
+```
+
+### Add CLI commands
+
+The generated `cli.py` has skeletal `add`, `list`, `update`, and `delete`
+command groups with commented-out examples. To add a command for the Example
+model above:
+
+```python
+@add.command()
+@click.argument("name")
+@click.option("--description", "-d", help="Description")
+def example(name, description):
+    """Add an example resource."""
+    from .models import Example
+    with get_session() as session:
+        obj = Example(name=name, description=description)
+        session.add(obj)
+        session.commit()
+        click.echo(f"Added example: {name}")
+```
+
+The CLI entry point is registered in `pyproject.toml` as
+`<project> = "<project>.cli:cli"`, so after `pip install -e .`:
+
+```bash
+<project> init-db           # Create tables
+<project> add example foo   # Add a record
+<project> list examples     # List records
+<project> sql "SELECT ..."  # Ad-hoc queries
 ```
 
 ### Generate and apply the initial migration
